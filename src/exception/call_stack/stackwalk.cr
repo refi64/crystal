@@ -37,7 +37,7 @@ struct Exception::CallStack
       case exception_info.value.exceptionRecord.value.exceptionCode
       when LibC::EXCEPTION_ACCESS_VIOLATION
         addr = exception_info.value.exceptionRecord.value.exceptionInformation[1]
-        Crystal::System.print_error "Invalid memory access (C0000005) at address 0x%llx\n", addr
+        Crystal::System.print_error "Invalid memory access (C0000005) at address %p\n", Pointer(Void).new(addr)
         print_backtrace(exception_info)
         LibC._exit(1)
       when LibC::EXCEPTION_STACK_OVERFLOW
@@ -51,8 +51,9 @@ struct Exception::CallStack
     end)
 
     # ensure that even in the case of stack overflow there is enough reserved
-    # stack space for recovery
-    stack_size = LibC::DWORD.new!(0x10000)
+    # stack space for recovery (for other threads this is done in
+    # `Crystal::System::Thread.thread_proc`)
+    stack_size = Crystal::System::Fiber::RESERVED_STACK_SIZE
     LibC.SetThreadStackGuarantee(pointerof(stack_size))
   end
 
@@ -83,7 +84,7 @@ struct Exception::CallStack
                      # TODO: use WOW64_CONTEXT in place of CONTEXT
                      {% raise "x86 not supported" %}
                    {% else %}
-                     {% raise "architecture not supported" %}
+                     {% raise "Architecture not supported" %}
                    {% end %}
 
     stack_frame = LibC::STACKFRAME64.new
@@ -150,31 +151,26 @@ struct Exception::CallStack
   end
 
   private def self.print_frame(repeated_frame)
+    Crystal::System.print_error "[%p] ", repeated_frame.ip
+    print_frame_location(repeated_frame)
+    Crystal::System.print_error " (%d times)", repeated_frame.count + 1 unless repeated_frame.count == 0
+    Crystal::System.print_error "\n"
+  end
+
+  private def self.print_frame_location(repeated_frame)
     if name = decode_function_name(repeated_frame.ip.address)
       file, line, _ = decode_line_number(repeated_frame.ip.address)
       if file != "??" && line != 0
-        if repeated_frame.count == 0
-          Crystal::System.print_error "[0x%llx] %s at %s:%ld\n", repeated_frame.ip, name, file, line
-        else
-          Crystal::System.print_error "[0x%llx] %s at %s:%ld (%ld times)\n", repeated_frame.ip, name, file, line, repeated_frame.count + 1
-        end
+        Crystal::System.print_error "%s at %s:%d", name, file, line
         return
       end
     end
 
     if frame = decode_frame(repeated_frame.ip)
       offset, sname, fname = frame
-      if repeated_frame.count == 0
-        Crystal::System.print_error "[0x%llx] %s +%lld in %s\n", repeated_frame.ip, sname, offset, fname
-      else
-        Crystal::System.print_error "[0x%llx] %s +%lld in %s (%ld times)\n", repeated_frame.ip, sname, offset, fname, repeated_frame.count + 1
-      end
+      Crystal::System.print_error "%s +%lld in %s", sname, offset.to_i64, fname
     else
-      if repeated_frame.count == 0
-        Crystal::System.print_error "[0x%llx] ???\n", repeated_frame.ip
-      else
-        Crystal::System.print_error "[0x%llx] ??? (%ld times)\n", repeated_frame.ip, repeated_frame.count + 1
-      end
+      Crystal::System.print_error "???"
     end
   end
 

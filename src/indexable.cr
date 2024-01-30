@@ -5,6 +5,22 @@
 # `-2` is the next to last element, and so on.
 #
 # Types including this module are typically `Array`-like types.
+#
+# ## Stability guarantees
+#
+# Several methods in `Indexable`, such as `#bsearch` and `#cartesian_product`,
+# require the collection to be _stable_; that is, calling `#each(&)` over and
+# over again should always yield the same elements, provided the collection is
+# not mutated between the calls. In particular, `#each(&)` itself should not
+# mutate the collection throughout the loop. Stability of an `Indexable` is
+# guaranteed if the following criteria are met:
+#
+# * `#unsafe_fetch` and `#size` do not mutate the collection
+# * `#each(&)` and `#each_index(&)` are not overridden
+#
+# The standard library assumes that all including types of `Indexable` are
+# always stable. It is undefined behavior to implement an `Indexable` that is
+# not stable or only conditionally stable.
 module Indexable(T)
   include Iterable(T)
   include Enumerable(T)
@@ -677,14 +693,14 @@ module Indexable(T)
     end
   end
 
-  # Returns an `Array` with all the elements in the collection.
+  # Returns an `Array` with the results of running *block* against each element of the collection.
   #
   # ```
-  # {1, 2, 3}.to_a # => [1, 2, 3]
+  # {1, 2, 3}.to_a { |i| i * 2 } # => [2, 4, 6]
   # ```
-  def to_a : Array(T)
-    ary = Array(T).new(size)
-    each { |e| ary << e }
+  def to_a(& : T -> U) : Array(U) forall U
+    ary = Array(U).new(size)
+    each { |e| ary << yield e }
     ary
   end
 
@@ -1467,7 +1483,7 @@ module Indexable(T)
       @copy = array.dup
       @indices = Array.new(@size, 0)
       @pool = @indices.map { |i| @copy[i] }
-      @stop = @size > @n
+      @stop = false
       @i = @size - 1
       @first = true
     end

@@ -3,11 +3,12 @@ module LLVM::ValueMethods
   end
 
   def name=(name)
-    LibLLVM.set_value_name(self, name)
+    LibLLVM.set_value_name2(self, name, name.bytesize)
   end
 
   def name
-    String.new LibLLVM.get_value_name(self)
+    ptr = LibLLVM.get_value_name2(self, out len)
+    String.new(ptr, len)
   end
 
   def kind
@@ -18,13 +19,19 @@ module LLVM::ValueMethods
     return if attribute.value == 0
 
     attribute.each_kind do |kind|
-      if type && LLVM::Attribute.requires_type?(kind)
-        attribute_ref = LibLLVMExt.create_type_attribute(context, kind, type)
-      else
-        attribute_ref = LibLLVM.create_enum_attribute(context, kind, 0)
-      end
+      LibLLVM.add_call_site_attribute(self, index, attribute_ref(context, kind, type))
+    end
+  end
 
-      LibLLVM.add_call_site_attribute(self, index, attribute_ref)
+  private def attribute_ref(context, kind, type)
+    if type.is_a?(Type) && Attribute.requires_type?(kind)
+      {% if LibLLVM::IS_LT_120 %}
+        raise "Type arguments are only supported on LLVM 12.0 or above"
+      {% else %}
+        LibLLVM.create_type_attribute(context, kind, type)
+      {% end %}
+    else
+      LibLLVM.create_enum_attribute(context, kind, 0)
     end
   end
 
@@ -86,7 +93,7 @@ module LLVM::ValueMethods
   end
 
   def ordering=(ordering)
-    LibLLVMExt.set_ordering(self, ordering)
+    LibLLVM.set_ordering(self, ordering)
   end
 
   def alignment=(bytes)

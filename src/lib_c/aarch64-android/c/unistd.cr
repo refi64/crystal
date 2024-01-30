@@ -30,6 +30,7 @@ lib LibC
   fun getpid : PidT
   fun getppid : PidT
   fun getuid : UidT
+  fun setuid(uid : UidT) : Int
   fun isatty(__fd : Int) : Int
   fun ttyname_r(__fd : Int, __buf : Char*, __buf_size : SizeT) : Int
   fun lchown(__path : Char*, __owner : UidT, __group : GidT) : Int
@@ -40,7 +41,7 @@ lib LibC
   fun lseek(__fd : Int, __offset : OffT, __whence : Int) : OffT
   fun pipe(__fds : Int[2]) : Int
   fun read(__fd : Int, __buf : Void*, __count : SizeT) : SSizeT
-  fun pread(__fd : Int, __buf : Void*, __count : SizeT, __offest : OffT) : SSizeT
+  fun pread(__fd : Int, __buf : Void*, __count : SizeT, __offset : OffT) : SSizeT
   fun rmdir(__path : Char*) : Int
   fun symlink(__old_path : Char*, __new_path : Char*) : Int
   fun readlink(__path : Char*, __buf : Char*, __buf_size : SizeT) : SSizeT

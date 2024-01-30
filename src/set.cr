@@ -382,6 +382,19 @@ struct Set(T)
     @hash.keys
   end
 
+  # Returns an `Array` with the results of running *block* against each element of the collection.
+  #
+  # ```
+  # Set{1, 2, 3, 4, 5}.to_a { |i| i // 2 } # => [0, 1, 2]
+  # ```
+  def to_a(& : T -> U) : Array(U) forall U
+    array = Array(U).new(size)
+    @hash.each_key do |key|
+      array << key
+    end
+    array
+  end
+
   # Alias of `#to_s`.
   def inspect(io : IO) : Nil
     to_s(io)
@@ -479,11 +492,30 @@ struct Set(T)
   def same?(other : Set) : Bool
     @hash.same?(other.@hash)
   end
+
+  # Rebuilds the set based on the current elements.
+  #
+  # When using mutable data types as elements, modifying an elements after it
+  # was inserted into the `Set` may lead to undefined behaviour. This method
+  # re-indexes the set using the current elements.
+  def rehash : Nil
+    @hash.rehash
+  end
 end
 
 module Enumerable
   # Returns a new `Set` with each unique element in the enumerable.
   def to_set : Set(T)
     Set.new(self)
+  end
+
+  # Returns a new `Set` with the unique results of running *block* against each
+  # element of the enumerable.
+  def to_set(&block : T -> U) : Set(U) forall U
+    set = Set(U).new
+    each do |elem|
+      set << yield elem
+    end
+    set
   end
 end

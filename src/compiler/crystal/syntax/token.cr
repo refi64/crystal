@@ -5,6 +5,7 @@ module Crystal
   enum Keyword
     ABSTRACT
     ALIAS
+    ALIGNOF
     ANNOTATION
     AS
     AS_QUESTION
@@ -27,6 +28,7 @@ module Crystal
     IF
     IN
     INCLUDE
+    INSTANCE_ALIGNOF
     INSTANCE_SIZEOF
     IS_A_QUESTION
     LIB
@@ -351,10 +353,6 @@ module Crystal
     end
 
     def location=(@location)
-    end
-
-    def token?(token)
-      @type.token? && @value == token
     end
 
     def keyword?

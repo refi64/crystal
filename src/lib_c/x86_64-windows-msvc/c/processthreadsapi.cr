@@ -1,5 +1,6 @@
 require "./basetsd"
 require "c/wtypesbase"
+require "c/sdkddkver"
 
 lib LibC
   CREATE_UNICODE_ENVIRONMENT = 0x00000400
@@ -32,19 +33,26 @@ lib LibC
     hStdError : HANDLE
   end
 
+  fun NtCurrentTeb : NT_TIB*
   fun GetCurrentThread : HANDLE
   fun GetCurrentThreadId : DWORD
-  fun GetCurrentThreadStackLimits(lowLimit : ULONG_PTR*, highLimit : ULONG_PTR*) : Void
+  {% if LibC::WIN32_WINNT >= LibC::WIN32_WINNT_WIN8 %}
+    fun GetCurrentThreadStackLimits(lowLimit : ULONG_PTR*, highLimit : ULONG_PTR*) : Void
+  {% end %}
   fun GetCurrentProcess : HANDLE
   fun GetCurrentProcessId : DWORD
   fun OpenProcess(dwDesiredAccess : DWORD, bInheritHandle : BOOL, dwProcessId : DWORD) : HANDLE
   fun GetExitCodeProcess(hProcess : HANDLE, lpExitCode : DWORD*) : BOOL
+  fun ExitProcess(uExitCode : UInt) : NoReturn
   fun TerminateProcess(hProcess : HANDLE, uExitCode : UInt) : BOOL
   fun CreateProcessW(lpApplicationName : LPWSTR, lpCommandLine : LPWSTR,
                      lpProcessAttributes : SECURITY_ATTRIBUTES*, lpThreadAttributes : SECURITY_ATTRIBUTES*,
                      bInheritHandles : BOOL, dwCreationFlags : DWORD,
                      lpEnvironment : Void*, lpCurrentDirectory : LPWSTR,
                      lpStartupInfo : STARTUPINFOW*, lpProcessInformation : PROCESS_INFORMATION*) : BOOL
+  {% if LibC::WIN32_WINNT >= LibC::WIN32_WINNT_WIN10 %}
+    fun SetThreadDescription(hThread : HANDLE, lpThreadDescription : LPWSTR) : LONG
+  {% end %}
   fun SetThreadStackGuarantee(stackSizeInBytes : DWORD*) : BOOL
   fun GetProcessTimes(hProcess : HANDLE, lpCreationTime : FILETIME*, lpExitTime : FILETIME*,
                       lpKernelTime : FILETIME*, lpUserTime : FILETIME*) : BOOL

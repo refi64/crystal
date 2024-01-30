@@ -24,13 +24,15 @@ struct LLVM::Function
 
     context = LibLLVM.get_module_context(LibLLVM.get_global_parent(self))
     attribute.each_kind do |kind|
-      if type && LLVM::Attribute.requires_type?(kind)
-        attribute_ref = LibLLVMExt.create_type_attribute(context, kind, type)
-      else
-        attribute_ref = LibLLVM.create_enum_attribute(context, kind, 0)
-      end
-      LibLLVM.add_attribute_at_index(self, index, attribute_ref)
+      LibLLVM.add_attribute_at_index(self, index, attribute_ref(context, kind, type))
     end
+  end
+
+  def add_attribute(attribute : String, index = AttributeIndex::FunctionIndex, *, value : String)
+    context = LibLLVM.get_module_context(LibLLVM.get_global_parent(self))
+    attribute_ref = LibLLVM.create_string_attribute(context, attribute, attribute.bytesize,
+      value, value.bytesize)
+    LibLLVM.add_attribute_at_index(self, index, attribute_ref)
   end
 
   def add_attribute(attribute : Attribute, index = AttributeIndex::FunctionIndex, *, value)

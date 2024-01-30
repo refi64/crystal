@@ -36,6 +36,10 @@
 {% else %}
   @[Link(ldflags: "`command -v pkg-config > /dev/null && pkg-config --libs --silence-errors libcrypto || printf %s '-lcrypto'`")]
 {% end %}
+{% if compare_versions(Crystal::VERSION, "1.11.0-dev") >= 0 %}
+  # TODO: if someone brings their own OpenSSL 1.x.y on Windows, will this have a different name?
+  @[Link(dll: "libcrypto-3-x64.dll")]
+{% end %}
 lib LibCrypto
   alias Char = LibC::Char
   alias Int = LibC::Int
@@ -48,6 +52,7 @@ lib LibCrypto
   type X509_EXTENSION = Void*
   type X509_NAME = Void*
   type X509_NAME_ENTRY = Void*
+  type X509_STORE = Void*
   type X509_STORE_CTX = Void*
 
   struct Bio
@@ -316,6 +321,7 @@ lib LibCrypto
     fun sk_value(x0 : Void*, x1 : Int) : Void*
   {% end %}
 
+  fun d2i_X509(a : X509*, ppin : UInt8**, length : Long) : X509
   fun x509_dup = X509_dup(a : X509) : X509
   fun x509_free = X509_free(a : X509)
   fun x509_get_subject_name = X509_get_subject_name(a : X509) : X509_NAME
@@ -351,6 +357,8 @@ lib LibCrypto
   fun x509_extension_create_by_nid = X509_EXTENSION_create_by_NID(ex : X509_EXTENSION, nid : Int, crit : Int, data : ASN1_STRING) : X509_EXTENSION
   fun x509v3_ext_nconf_nid = X509V3_EXT_nconf_nid(conf : Void*, ctx : Void*, ext_nid : Int, value : Char*) : X509_EXTENSION
   fun x509v3_ext_print = X509V3_EXT_print(out : Bio*, ext : X509_EXTENSION, flag : Int, indent : Int) : Int
+
+  fun x509_store_add_cert = X509_STORE_add_cert(ctx : X509_STORE, x : X509) : Int
 
   {% unless compare_versions(OPENSSL_VERSION, "1.1.0") >= 0 %}
     fun err_load_crypto_strings = ERR_load_crypto_strings

@@ -42,6 +42,12 @@ STDOUT = IO::FileDescriptor.from_stdio(1)
 STDERR = IO::FileDescriptor.from_stdio(2)
 
 # The name, the program was called with.
+#
+# The result may be a relative or absolute path (including symbolic links),
+# just the command name or the empty string.
+#
+# See `Process.executable_path` for a more convenient alternative that always
+# returns the absolute real path to the executable file (if it exists).
 PROGRAM_NAME = String.new(ARGV_UNSAFE.value)
 
 # An array of arguments passed to the program.
@@ -88,6 +94,13 @@ ARGV = Array.new(ARGC_UNSAFE - 1) { |i| String.new(ARGV_UNSAFE[1 + i]) }
 # ARGF.gets_to_end # => Content of file2
 # ```
 ARGF = IO::ARGF.new(ARGV, STDIN)
+
+# The newline constant
+EOL = {% if flag?(:windows) %}
+        "\r\n"
+      {% else %}
+        "\n"
+      {% end %}
 
 # Repeatedly executes the block.
 #
@@ -528,7 +541,7 @@ def abort(message = nil, status = 1) : NoReturn
   exit status
 end
 
-{% unless flag?(:preview_mt) || flag?(:wasm32) %}
+{% if !flag?(:preview_mt) && flag?(:unix) %}
   class Process
     # :nodoc:
     #
@@ -550,14 +563,6 @@ end
 {% end %}
 
 {% unless flag?(:interpreted) || flag?(:wasm32) %}
-  # Background loop to cleanup unused fiber stacks.
-  spawn(name: "Fiber Clean Loop") do
-    loop do
-      sleep 5
-      Fiber.stack_pool.collect
-    end
-  end
-
   {% if flag?(:win32) %}
     Crystal::System::Process.start_interrupt_loop
   {% else %}
@@ -573,7 +578,5 @@ end
   Exception::CallStack.load_debug_info if ENV["CRYSTAL_LOAD_DEBUG_INFO"]? == "1"
   Exception::CallStack.setup_crash_handler
 
-  {% if flag?(:preview_mt) %}
-    Crystal::Scheduler.init_workers
-  {% end %}
+  Crystal::Scheduler.init
 {% end %}

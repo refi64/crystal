@@ -37,6 +37,10 @@ class Process
   end
 
   # Returns the process identifier of the parent process of the current process.
+  #
+  # On Windows, the parent is associated only at process creation time, and the
+  # system does not re-parent the current process if the parent terminates; thus
+  # `Process.exists?(Process.ppid)` is not guaranteed to be true.
   def self.ppid : Int64
     Crystal::System::Process.ppid.to_i64
   end
@@ -165,8 +169,6 @@ class Process
 
   # Replaces the current process with a new one. This function never returns.
   #
-  # Available only on Unix-like operating systems.
-  #
   # Raises `IO::Error` if executing the command fails (for example if the executable doesn't exist).
   def self.exec(command : String, args = nil, env : Env = nil, clear_env : Bool = false, shell : Bool = false,
                 input : ExecStdio = Redirect::Inherit, output : ExecStdio = Redirect::Inherit, error : ExecStdio = Redirect::Inherit, chdir : Path | String? = nil) : NoReturn
@@ -194,7 +196,7 @@ class Process
         File.open(File::NULL, "w")
       end
     else
-      raise "BUG: impossible type in ExecStdio #{stdio.class}"
+      raise "BUG: Impossible type in ExecStdio #{stdio.class}"
     end
   end
 
@@ -241,7 +243,7 @@ class Process
     fork_output = stdio_to_fd(output, for: STDOUT)
     fork_error = stdio_to_fd(error, for: STDERR)
 
-    pid = Crystal::System::Process.spawn(command_args, env, clear_env, fork_input, fork_output, fork_error, chdir)
+    pid = Crystal::System::Process.spawn(command_args, env, clear_env, fork_input, fork_output, fork_error, chdir.try &.to_s)
     @process_info = Crystal::System::Process.new(pid)
 
     fork_input.close unless fork_input.in?(input, STDIN)
@@ -282,7 +284,7 @@ class Process
       when STDERR
         @error, fork_io = IO.pipe(write_blocking: true)
       else
-        raise "BUG: unknown destination io #{dst_io}"
+        raise "BUG: Unknown destination io #{dst_io}"
       end
 
       fork_io
@@ -295,7 +297,7 @@ class Process
         File.open(File::NULL, "w")
       end
     else
-      raise "BUG: impossible type in stdio #{stdio.class}"
+      raise "BUG: Impossible type in stdio #{stdio.class}"
     end
   end
 
@@ -326,6 +328,7 @@ class Process
     Process::Status.new(@process_info.wait)
   ensure
     close
+    @process_info.release
   end
 
   # Whether the process is still registered in the system.
@@ -344,7 +347,6 @@ class Process
     close_io @input
     close_io @output
     close_io @error
-    @process_info.release
   end
 
   # Asks this process to terminate.
