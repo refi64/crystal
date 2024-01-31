@@ -67,8 +67,9 @@ describe "concurrent" do
     typeof(spawn String.new)
   end
 
-  {% if flag?(:darwin) %}
+  {% if flag?(:darwin) || flag?(:wasm32) %}
     pending "schedules intermitting sleeps"
+    # TODO: event loop for wasm32
     # TODO: This spec fails on darwin, even with highly increased sleep times. Needs investigation.
   {% else %}
     it "schedules intermitting sleeps" do

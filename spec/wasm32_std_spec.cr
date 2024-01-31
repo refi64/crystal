@@ -28,7 +28,7 @@ require "./std/complex_spec.cr"
 # require "./std/compress/zlib/stress_spec.cr" (failed linking)
 # require "./std/compress/zlib/writer_spec.cr" (failed linking)
 # require "./std/concurrent/select_spec.cr" (failed to run)
-# require "./std/concurrent_spec.cr" (failed to run)
+require "./std/concurrent_spec.cr"
 require "./std/crypto/bcrypt/base64_spec.cr"
 require "./std/crypto/bcrypt/password_spec.cr"
 require "./std/crypto/bcrypt_spec.cr"
